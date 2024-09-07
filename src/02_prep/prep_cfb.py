@@ -12,6 +12,9 @@ assets_dir = os.path.join(os.getcwd().split('sports_sim')[0], 'sports_sim/assets
 with open(os.path.join(assets_dir, 'season_ratings.pickle'), 'rb') as read_file:
     season_ratings = pickle.load(read_file)
     
+with open(os.path.join(assets_dir, 'season_polls.pickle'), 'rb') as read_file:
+    season_polls = pickle.load(read_file)
+
 # ---> Aggregate Season in a CFB League with Team and Conference alignments
 '''
 Construct the Division 1 team list from ratings, this information
@@ -25,7 +28,9 @@ for team in season_ratings:
 for season in league.seasons:
     print(f'{season.playoffs}')
     
-        
+for poll in season_polls:
+    if poll['rank'] == '1':
+        print(poll)
         
 # ---> What do we neeed to prep/clean/check/validate?  
 # ---> What do we neeed to prep?  

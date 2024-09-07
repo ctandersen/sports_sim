@@ -6,25 +6,34 @@ years to make sure to handle table structure changes.
 We keep everything here in text format on purpose, other scripts can handle data validation
 and type casting to suit the need of the model. Goal here is to simply scrape the webpage.
 """
-import bs4
+from bs4 import BeautifulSoup
 
 from web.fetch import fetch
+from enum import Enum
 
 CFB_REF_URL = 'https://www.sports-reference.com/cfb/'
 
+class PollType(Enum):
+    '''
+    Describes the polls options
+    '''
+    AP = 1
+    CFP = 2
+    COACHES = 3
+    
 def get_season_ratings(season: int) -> list[dict]:
     ratings_list = []
 
-    '''
+    """
     The table changes for season 1996 to exclude ties (6th column) from
     the win-loss record as sudden death OT was implemented in college football,
     thus moving all the columns over one after where ties used to be 
-    '''
+    """
     ties_offset = 1 if season < 1996 else 0
     
     url = f'{CFB_REF_URL}years/{season}-ratings.html'
     html = fetch(url, pause_seconds=3.5)
-    soup = bs4. BeautifulSoup(html, features='html.parser')
+    soup = BeautifulSoup(html, features='html.parser')
     tbody = soup.find('tbody')
     
     for tr in tbody.find_all('tr'):
@@ -60,18 +69,18 @@ def get_season_ratings(season: int) -> list[dict]:
     return ratings_list        
 
 def get_season_standings(season: int) -> list[dict]:
-    standings_list = []
-    
-    '''
+    """
     The table changes for season 1996 to exclude ties (4th and 8th column) from
     the win-loss record as sudden death OT was implemented in college football,
     thus moving all the columns over one or two after where ties used to be 
-    '''
+    """
+    
+    standings_list = []
     ties_offset = 1 if season < 1996 else 0
     
     url = f'{CFB_REF_URL}years/{season}-standings.html'
     html = fetch(url, pause_seconds=3.5)
-    soup = bs4. BeautifulSoup(html, features='html.parser')
+    soup = BeautifulSoup(html, features='html.parser')
     tbody = soup.find('tbody')
     
     for tr in tbody.find_all('tr'):
@@ -109,17 +118,17 @@ def get_season_standings(season: int) -> list[dict]:
 
 
 def get_season_schedule(season: int) -> list[dict]:
-    games_list = []
-    
-    '''
+    """
     The table changes for season 2013 to include the time of the game,
     thus moving all the columns over one where time was added (3rd column) 
-    '''
+    """
+    
+    games_list = []
     time_offset = 0 if season < 2013 else 1
    
     url = f'{CFB_REF_URL}years/{season}-schedule.html'
     html = fetch(url, pause_seconds=3.5)
-    soup = bs4. BeautifulSoup(html, features='html.parser')
+    soup = BeautifulSoup(html, features='html.parser')
     tbody = soup.find('tbody')
     
     for tr in tbody.find_all('tr'):
@@ -146,3 +155,39 @@ def get_season_schedule(season: int) -> list[dict]:
             continue
     
     return games_list
+
+
+def get_season_polls(season: int) -> list[dict]:
+    """
+    This script can only poll the CFP polls for now. I am having trouble
+    getting the AP and Coaches as the html comes commented out and 
+    I am not sure how to handle that with the Soup.
+    """
+    
+    print(f'Season: {season}')
+    url = f'{CFB_REF_URL}years/{season}-polls.html'
+    html = fetch(url, pause_seconds=3.5)
+    soup = BeautifulSoup(html, 'html.parser')
+            
+    poll_html_section = soup.find("table" , attrs={'id': 'cfbplayoff'})    
+    tbody = poll_html_section.find('tbody')
+    
+    poll_list = []
+    
+    for tr in tbody.find_all('tr'):
+        team_entry = {}
+        try:
+            th = tr.find('th')
+            td_list = list(tr.find_all('td'))            
+            team_entry['season'] = str(season)
+            team_entry['poll'] = 'CFP Playoff'
+            team_entry['wk'] = th.text
+            team_entry['date'] = td_list[0].text
+            team_entry['rank'] = td_list[1].text
+            team_entry['school'] = td_list[2].text
+            
+            poll_list.append(team_entry)
+            
+        except Exception:
+            continue
+    return poll_list
